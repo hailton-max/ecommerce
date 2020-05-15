@@ -15,7 +15,7 @@ class Model {
 		switch ($method) {
 			case "get":
 				
-				$this->values[$fieldName];
+				 return $this->values[$fieldName];
 
 				break;
 
@@ -37,10 +37,11 @@ class Model {
 		}
 	}
 
-public function getValues(){
+	public function getValues(){
 
 		return $this->values;
-}
+	}
+
 }
 
  ?>

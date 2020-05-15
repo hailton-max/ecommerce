@@ -1,13 +1,13 @@
 <?php if(!class_exists('Rain\Tpl')){exit;}?><!DOCTYPE html>
 <!--
-    Lojinha Store by HailtonDes.com.br
+    Virtual Store by HailtonDes.com.br
 -->
 <html lang="pt-br">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lojinha Store</title>
+    <title>Virtual Store</title>
     
     <!-- Google Fonts -->
     <link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
