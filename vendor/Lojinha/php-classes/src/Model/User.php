@@ -9,6 +9,10 @@ class User extends Model{
 
 	const SESSION = "User";
 
+	protected $fields=[
+
+		"iduser", "idperson", "desperson", "deslogin", "despassword", "desemail", "nrphone","inadmin", "dtregister"];
+
 	public static function login($login, $password)
 	{
 
@@ -32,11 +36,13 @@ class User extends Model{
 
 			$user = new User();
 
+			//$data['desperson'] = utf8_encode($data['desperson']);
+
 			$user->setData($data);
 
-			//return $user;
-
 			$_SESSION[User::SESSION] = $user->getValues();
+
+			return $user;
 
 		} else {
 			throw new \Exception("Usuario inexistente ou senha inválida.");
@@ -79,12 +85,13 @@ class User extends Model{
 	public function save(){
 
 		$sql = new Sql();
-		$results = $sql->select("CALL sp_users_save(:dperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin", array(
+
+		$results = $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin", array(
 			":desperson"=>$this->getdesperson(),
 			":deslogin"=>$this->getdeslogin(),
 			":despassword"=>$this->getdespassword(),
 			":desemail"=>$this->getdesemail(),
-			":nrphone"=>$this->getdesnrphone(),
+			":nrphone"=>$this->getnrphone(),
 			":inadmin"=>$this->getinadmin()
 
 		));
@@ -102,8 +109,8 @@ public function get($iduser){
 			":iduser"=>$iduser
 		));
 
-		$data = $results[0];
-		$this->setData($data);
+		//$data = $results[0];
+		$this->setData($results[0]);
 
 	}
 
@@ -117,7 +124,7 @@ public function update(){
 			":deslogin"=>$this->getdeslogin(),
 			":despassword"=>$this->getdespassword(),
 			":desemail"=>$this->getdesemail(),
-			":nrphone"=>$this->getdesnrphone(),
+			":nrphone"=>$this->getnrphone(),
 			":inadmin"=>$this->getinadmin()
 
 		));
