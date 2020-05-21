@@ -197,6 +197,52 @@ $app->get("/admin/forgot/sent", function()
 
 	});
 
+$app->get("/admin/forgot/reset", function(){
+
+	$user = User::ValidForgotDecrypt($_GET["code"]);
+
+	$page = new PageAdmin([
+
+		"header"=>false,
+		"footer"=>false
+	]);
+
+	$page->setTpl("forgot-reset", array(
+
+		"name"=>$user["desperson"],
+		"code"=>$_GET["code"]
+	));
+
+});
+
+$app->post("/admin/forgot/reset", function (){
+
+	$forgot = User::ValidForgotDecrypt($_POST["code"]);
+
+	User::setForgotUsed($forgot["idrecovery"]);
+
+	$user = new User();
+
+	$user->get((int)$forgot["iduser"]);
+
+	$password = password_hash($_POST["password"], PASSWORD_DEFAULT,[
+
+		"cost"=>12
+
+	]);
+
+	$user->setPassword($password);
+
+	$page = new PageAdmin([
+
+		"header"=>false,
+		"footer"=>false
+	]);
+
+	$page->setTpl("forgot-reset-success");
+
+});
+
 $app->run();
 
  ?>
