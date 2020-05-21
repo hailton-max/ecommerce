@@ -4,39 +4,40 @@ namespace Lojinha\Model;
 
 use \Lojinha\DB\Sql;
 use \Lojinha\Model;
+use \Lojinha\Mailer;
 
 class User extends Model{
 
 	const SESSION = "User";
-
-	protected $fields=[
-
-		"iduser", "idperson", "desperson", "deslogin", "despassword", "desemail", "nrphone","inadmin", "dtregister"];
+	const SECRET = "Lojinha_scrtCode";
+	const cipher = "AES-128-ECB";
+	const SECRET_IV = "Lojinha_scrtCode_IV";
+	const ERROR = "UserError";
+	const ERROR_REGISTER = "UserErrorRegister";
+	const SUCCESS = "UserSucesss";
 
 	public static function login($login, $password)
 	{
 
-		$sql = new sql();
+		$sql = new Sql();
 
-		$results = $sql->select("SELECT * FROM tb_users WHERE deslogin = :LOGIN", array(
-
+		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b ON a.idperson = b.idperson WHERE a.deslogin = :LOGIN", array(
 			":LOGIN"=>$login
+		)); 
 
-		));
-
-		if (count($results)===0) {
-			throw new \Exception("Usuario inexisten ou senha inválida");
-			
+		if (count($results) === 0)
+		{
+			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
 
 		$data = $results[0];
 
-		if (password_verify($password, $data["despassword"])=== true)
+		if (password_verify($password, $data["despassword"]) === true)
 		{
 
 			$user = new User();
 
-			//$data['desperson'] = utf8_encode($data['desperson']);
+			$data['desperson'] = utf8_encode($data['desperson']);
 
 			$user->setData($data);
 
@@ -45,11 +46,12 @@ class User extends Model{
 			return $user;
 
 		} else {
-			throw new \Exception("Usuario inexistente ou senha inválida.");
-			
+			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
+
 	}
 
+	
 	public static function verifyLogin($inadmin = true)
 	{
 		if(
@@ -73,20 +75,22 @@ class User extends Model{
 		$_SESSION[User::SESSION] = NULL;
 	}
 
-	public static function listAll(){
+	public static function listAll()
+	{
 
 		$sql = new Sql();
-		return  $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING (idperson) ORDER BY b.desperson");
 
-
+		return $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) ORDER BY b.desperson");
 
 	}
+
+
 
 	public function save(){
 
 		$sql = new Sql();
 
-		$results = $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin", array(
+		$results = $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
 			":desperson"=>$this->getdesperson(),
 			":deslogin"=>$this->getdeslogin(),
 			":despassword"=>$this->getdespassword(),
@@ -95,30 +99,34 @@ class User extends Model{
 			":inadmin"=>$this->getinadmin()
 
 		));
-
-		$this->setData($results[0]);
+		$data = $results[0];
+		$this->setData();
 	}
 
-public function get($iduser){
-
+	public function get($iduser)
+	{
 
 		$sql = new Sql();
 
-		$results = $sql-> select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING (idperson) WHERE a:iduser", array(
-
+		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = :iduser", array(
 			":iduser"=>$iduser
 		));
 
-		//$data = $results[0];
-		$this->setData($results[0]);
+		$data = $results[0];
+
+		$data['desperson'] = utf8_encode($data['desperson']);
+
+
+		$this->setData($data);
 
 	}
 
 
-public function update(){
 
-	$sql = new Sql();
-		$results = $sql->select("CALL sp_usersupdate_save(:iduser, :dperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin", array(
+	public function update(){
+
+		$sql = new Sql();
+		$results = $sql->select("CALL sp_usersupdate_save(:iduser, :desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
 			"iduser"=>$this->getiduser(),
 			":desperson"=>$this->getdesperson(),
 			":deslogin"=>$this->getdeslogin(),
@@ -131,7 +139,7 @@ public function update(){
 
 		$this->setData($results[0]);
 
-}
+	}
 
 	public function delete(){
 
@@ -146,6 +154,143 @@ public function update(){
 
 	}
 
+	/*public static function getForgot($email, $inadmin = true)
+
+	{
+		$sql = new Sql();
+
+		$results = $sql->select("SELECT * FROM tb_persons a INNER JOIN tb_users b USING(idperson)
+								WHERE a.desemail = :email;", array(
+									":email"=>$email
+								));
+		if (count($results)===0)
+		{
+			
+			throw new \Exception("Não foi possível recuperar a senha.");
+			
+		}	else
+			{
+			$data = $results[0];
+
+			$results2 = $sql->select("CALL sp_userspasswordsrecoveries_create(:iduser, :desip", array(
+
+				":iduser"=>$data["iduser"],
+				":desip"=>$_SERVER["REMOTE_ADDR"]
+
+			));
+
+			if(count($results2)===0)
+			{
+
+			throw new \Exception("Não foi possivel recuperar a senha.");
+
+			
+			}
+			else
+			{
+
+				$dataRecovery = $results2[0];
+
+				$iv = randon_byte(openssl_cipher_iv_length('aes-256-cbc'));
+				$code = openssl_encrypt($dataRecovery["idrecovery"], 'eas-256-cbc', User::SECRET, 0, $iv);
+				$result = base64_encode($iv.$code);
+
+				if($inadmin===true)
+				{
+				$link = "http://www.virtualecommerce.com.br/admin/forgot/reset?code=$result";
+				}
+				else
+				{
+					$link = "http://www.virtualecommerce.com.br/forgot/reset?code=$result";
+				}
+
+				$mailer = new Mailer($data["desemail"], $data["$desperson"], "Redefinir senha da Virtual Store", "forgot",
+									array(
+										"name"=>$data["desperson"],
+										"link"=>$link
+
+									));
+				$mailer->send();
+
+				return $link;
+
+			}
+
+		}
+	}*/
+
+	public static function getForgot($email, $inadmin = true)
+	{
+
+		$sql = new Sql();
+
+		$results = $sql->select("
+			SELECT *
+			FROM tb_persons a
+			INNER JOIN tb_users b USING(idperson)
+			WHERE a.desemail = :email;
+		", array(
+			":email"=>$email
+		));
+
+		if (count($results) === 0)
+		{
+
+			throw new \Exception("Não foi possível recuperar a senha.");
+
+		}
+		else
+		{
+
+			$data = $results[0];
+
+			$results2 = $sql->select("CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
+				":iduser"=>$data['iduser'],
+				":desip"=>$_SERVER['REMOTE_ADDR']
+			));
+
+			if (count($results2) === 0)
+			{
+
+				throw new \Exception("Não foi possível recuperar a senha.");
+
+			}
+			else
+			{
+
+				$dataRecovery = $results2[0];
+
+				$code = openssl_encrypt($dataRecovery['idrecovery'], 'AES-128-CBC', pack("a16", User::SECRET), 0, pack("a16", User::SECRET_IV));
+
+				$code = base64_encode($code);
+
+				if ($inadmin === true) {
+
+					$link = "http://www.virtualecommerce.com.br/admin/forgot/reset?code=$code";
+
+				} else {
+
+					$link = "http://www.virtualecommerce.com.br/forgot/reset?code=$code";
+					
+				}				
+
+				$mailer = new Mailer($data['desemail'], $data['desperson'], "Redefinir senha da Virtual Store", "forgot", array(
+					"name"=>$data['desperson'],
+					"link"=>$link
+				));				
+
+				$mailer->send();
+
+				return $link;
+
+			}
+
+		}
+
+	}
+
+
 }
+
 
  ?>
