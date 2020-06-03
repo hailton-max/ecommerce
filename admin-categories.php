@@ -1,5 +1,6 @@
 <?php 
 
+use\Lojinha\Page;
 use \Lojinha\PageAdmin;
 use \Lojinha\Model\User;
 use \Lojinha\Model\Category;

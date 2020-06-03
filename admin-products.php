@@ -37,6 +37,7 @@ $app->post("/admin/products/create", function(){
 
 	$product->setData($_POST);
 	$product->save();
+	if ($_FILES["file"]["name"]!=="") $product->setPhoto($_FILES["file"]);
 
 	header("Location: /admin/products");
 	exit;
